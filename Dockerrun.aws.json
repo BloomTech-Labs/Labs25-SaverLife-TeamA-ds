@@ -1,7 +1,7 @@
 {
   "AWSEBDockerrunVersion": "1",
   "Image": {
-    "Name": "YOUR-DOCKER-HUB-ID/YOUR-IMAGE-NAME",
+    "Name": "kylety1er/labs25-saverlife-teama-ds_web_1",
     "Update": "true"
   },
   "Ports": [
