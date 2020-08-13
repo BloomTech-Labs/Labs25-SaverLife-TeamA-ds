@@ -6,7 +6,7 @@ from app.api import predict, viz
 
 app = FastAPI(
     title='saverlife-a',
-    description='end point for ds/web,
+    description='end point for ds/web',
     version='0.1',
     docs_url='/',
 )
