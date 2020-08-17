@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException
 import pandas as pd
 import plotly.express as px
+from app.helpers import *
+from app.user import User
 
 router = APIRouter()
 
@@ -52,3 +54,52 @@ async def viz(statecode: str):
 
     # Return Plotly figure as JSON string
     return fig.to_json()
+
+@router.get('/{user_id}/moneyflow')
+async def viz(user_id: str):
+    """
+    Visualize a user's money flow
+    
+    ### Path Parameter
+    `user_id`: The unique plaid_account_id of a user
+
+    ### Response
+    JSON string to render with [react-plotly.js](https://plotly.com/javascript/react/) 
+    """
+
+    transactions = clean_data()
+    
+    unique_users = set(transactions['plaid_account_id'].unique())
+    
+    # Validate the user
+    if user_id not in unique_users:
+        raise HTTPException(status_code=404, detail=f'User {user_id} not found')
+
+    user = User(user_id, transactions)
+    return user.money_flow()
+
+@router.get('/{user_id}/spending/{graph_type}')
+async def viz(user_id: str, graph_type: str):
+    """
+    Visualize a user's spending history by category
+    
+    ### Path Parameter
+    `user_id`: The unique plaid_account_id of a user
+    `graph_type: pie or bar
+
+    ### Response
+    JSON string to render with [react-plotly.js](https://plotly.com/javascript/react/) 
+    """ 
+    transactions = clean_data()
+    
+    unique_users = set(transactions['plaid_account_id'].unique())
+    
+    # Validate the user
+    if user_id not in unique_users:
+        raise HTTPException(status_code=404, detail=f'User {user_id} not found')
+    
+    user = User(user_id, transactions)
+    if graph_type == 'pie':
+        return user.categorical_spending()
+    if graph_type == 'bar':
+        return user.bar_viz()
