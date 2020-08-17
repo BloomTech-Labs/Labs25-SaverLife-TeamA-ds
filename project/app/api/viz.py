@@ -56,7 +56,7 @@ async def viz(statecode: str):
     return fig.to_json()
 
 @router.get('/{user_id}/moneyflow')
-async def viz(user_id: str):
+async def moneyflow(user_id: str):
     """
     Visualize a user's money flow
     
@@ -79,13 +79,14 @@ async def viz(user_id: str):
     return user.money_flow()
 
 @router.get('/{user_id}/spending/{graph_type}')
-async def viz(user_id: str, graph_type: str):
+async def spending(user_id: str, graph_type: str):
     """
     Visualize a user's spending history by category
     
     ### Path Parameter
     `user_id`: The unique plaid_account_id of a user
-    `graph_type: pie or bar
+    
+    `graph_type`: pie or bar
 
     ### Response
     JSON string to render with [react-plotly.js](https://plotly.com/javascript/react/) 
