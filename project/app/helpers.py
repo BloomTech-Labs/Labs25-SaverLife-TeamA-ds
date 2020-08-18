@@ -24,7 +24,9 @@ def clean_data():
     dfPFA = pd.read_csv('https://raw.githubusercontent.com/KyleTy1er/dsaverlife_restricted/master/PFA_BA_PMT_Table_examples1.csv?token=AM3U74TIWUFMHLGT5PUOX427HVQOO')
     dfBA = pd.read_csv('https://raw.githubusercontent.com/KyleTy1er/dsaverlife_restricted/master/PFA_BA_PMT_Table_examples2.csv?token=AM3U74RJKDWGSDIVHOXZDQ27HVQ72')
     dfPMT = pd.read_csv('https://raw.githubusercontent.com/KyleTy1er/dsaverlife_restricted/master/PFA_BA_PMT_Table_examples3.csv?token=AM3U74R4QWFKNPAWDQFJMWS7HVRGM')
+
     category_lookups = pd.read_csv('https://raw.githubusercontent.com/KyleTy1er/dsaverlife_restricted/master/category_lookups.csv?token=AM3U74V5QXLJDSSDVHWEBOS7IVDGM')
+
 
     PFA_BA_cols = ['created_at', 'updated_at']
     PMT_cols = ['date', 'created_at', 'updated_at']
