@@ -33,7 +33,7 @@ def get_last_time_period(transaction_df, time_period='week'):
         return transaction_df
     else:
         raise ValueError(
-            f"time_period must be one of 'day, week, month, year, or 'all'. Got {time_period} instead.")
+            f"time_period must be one of 'day, week, month, year, or all'. Got {time_period} instead.")
     # subset the data based on the time frame
     subset = transaction_df[transaction_df['date'] >= cutoff]
     # return the subsetted data

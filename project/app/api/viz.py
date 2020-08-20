@@ -33,6 +33,28 @@ class Item(BaseModel):
         users = set(clean_data()['plaid_account_id'])
         assert value in users, f'the user_ID {value} is invalid'
         return value
+    
+class MoneyFlow(BaseModel):
+    """Use this data model to parse the request body JSON."""
+    user_ID: str = Field(..., example='1635ob1dkQIz1QMjLmBpt0E36VyM96ImeyrgZ')
+    time_period: str = Field(..., example='week')
+
+    def to_df(self):
+        """Convert pydantic object to pandas dataframe with 1 row."""
+        return pd.DataFrame([dict(self)])
+
+    def to_dict(self):
+        """Convert pydantic object to python dictionary."""
+        return dict(self)
+
+    @validator('user_ID')
+    def user_ID_must_exist(cls, value):
+        """Validate that user_id is a valid ID."""
+        # load sample data and create a set of the user ID's
+        users = set(clean_data()['plaid_account_id'])
+        assert value in users, f'the user_ID {value} is invalid'
+        return value
+
 
 
 @router.get('/viz/{statecode}')
@@ -85,21 +107,23 @@ async def viz(statecode: str):
     # Return Plotly figure as JSON string
     return fig.to_json()
 
-
-@router.get('/{user_id}/moneyflow/{time_period}')
-async def moneyflow(user_id: str, time_period: str):
+@router.post('/moneyflow')
+async def moneyflow(moneyflow: MoneyFlow):
     """
     Visualize a user's money flow 📈
-
-    ### Path Parameter
-    `user_id`: The unique plaid_account_id of a user
-
+    ### Request Body
+    - `User_ID`: str
+    - `time_period`: str
     ### Response
-    JSON string to render with [react-plotly.js](https://plotly.com/javascript/react/) 
+    - `plotly object`:
+    visualizing the user's money flow over the specified time period.
     """
-
+    # Get the JSON object from the POST request body and cast it to a python dictionary
+    input_dict = moneyflow.to_dict()
+    user_id = input_dict['user_ID']
+    time_period = input_dict['time_period']
+    
     transactions = clean_data()
-
     unique_users = set(transactions['plaid_account_id'].unique())
 
     # Validate the user
@@ -111,8 +135,9 @@ async def moneyflow(user_id: str, time_period: str):
     return user.money_flow(time_period=time_period)
 
 
-@router.post('/spending_post')
-async def spending_post(item: Item):
+
+@router.post('/spending')
+async def spending(item: Item):
     """
     Make visualizations based on past spending 📊
     ### Request Body
