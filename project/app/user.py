@@ -41,6 +41,7 @@ def get_last_time_period(transaction_df, time_period='week'):
 
     return subset
 
+
 def weighted_avg(data):
     """
     Given a dataframe
@@ -49,13 +50,13 @@ def weighted_avg(data):
     categories = data.index
     # get number of timepoints/observations and create weights
     N = data.shape[1]
-    weights = [i for i in range(N ,0,-1)]
+    weights = [i for i in range(N, 0, -1)]
     averages = []
-    # for each categorie, calculate the weighted average and 
+    # for each categorie, calculate the weighted average and
     # store in the averages list
     for cat in categories:
         cat_data = list(data.loc[cat])
-        # replace nan vaalues with 0 
+        # replace nan vaalues with 0
         for i in range(len(cat_data)):
             if str(cat_data[i]) == 'nan':
                 cat_data[i] = 0
@@ -65,6 +66,7 @@ def weighted_avg(data):
     data['mean'] = averages
     data = data.round()
     return data
+
 
 def monthly_avg_spending(user_expenses_df, num_months=6, category='grandparent_category_name', weighted=True):
     ticker = 0
@@ -116,7 +118,7 @@ def monthly_avg_spending(user_expenses_df, num_months=6, category='grandparent_c
             ticker += 1
 
     prev = prev.drop(columns=['amount_cents'])
-    
+
     if weighted:
         prev = weighted_avg(prev)
     else:
@@ -126,7 +128,7 @@ def monthly_avg_spending(user_expenses_df, num_months=6, category='grandparent_c
 
 
 class User():
-    def __init__(self, id, transactions, name=None, show=False):
+    def __init__(self, id, transactions, name=None, show=False, hole=0):
         """
         Constructor for the User class.
 
@@ -146,6 +148,7 @@ class User():
             self.data['amount_cents'] > 0)]
         self.show = show
         self.past_months = 6
+        self.hole = hole
 
     def get_user_data(self):
         """
@@ -155,7 +158,8 @@ class User():
 
     def categorical_spending(self, time_period='week', category='grandparent_category_name'):
         """
-        Returns jsonified plotly object which is a pie chart of recent transactions for the User.
+        Returns jsonified plotly object which is a pie chart of recent
+        transactions for the User.
 
         Parameters:
               time_period (str): time frame used to define "recent" transactions
@@ -167,8 +171,10 @@ class User():
         Returns:
               Plotly object of a pie chart in json
         """
-        user_expenses = self.expenses.copy()
 
+        category='grandparent_category_name'
+        user_expenses = self.expenses.copy()
+        
         # get a list of categories
         cat_count = self.expenses[category].value_counts(normalize=True)
 
@@ -176,26 +182,44 @@ class User():
         user_expenses = get_last_time_period(user_expenses, time_period)
 
         # for categories that fall under 5% of transactions, group them into the "Other" category
-        for i in range(len(cat_count.index)):
-            if cat_count[i] <= .05:
-                bad_cat = cat_count.index[i]
-                user_expenses = user_expenses.replace([bad_cat], ['Other'])
-
-        # Create plotly graph object
-        fig = go.Figure(data=[go.Pie(
-            labels=user_expenses[category], values=user_expenses['amount_dollars'])])
+        fig = go.Figure(data=[go.Pie(labels=user_expenses['grandparent_category_name'],
+                                     values=user_expenses['amount_dollars'],
+                                     hole = self.hole)])
+        
+        fig.update_traces(textinfo= "percent")
+        fig.update_layout(width=1000, height=600,)
 
         # Add title
-        fig.update_layout(title=f"{self.name}'s Spending Habits",
-                          font_size=16,)
+        if time_period == 'all':     
+            fig.update_layout(title={"text" : f"Spending by Category", "x":0.5,
+                                     "y":0.9},
+                              font_size=16,)
 
+        else:
+            fig.update_layout(title={"text" : f"Spending by Category for the Last {time_period.capitalize()}", "x":0.5, "y":0.9},
+                              font_size=16)
+
+        fig.update_traces(textposition='inside', textfont_size=14)
+
+        fig.update_layout(
+            legend=dict(
+                x=.43,
+                y=.5,
+                traceorder="normal",
+                font=dict(
+                    family="sans-serif",
+                    size=12,)
+                ))
+        
         if self.show:
             fig.show()
+        
         return fig.to_json()
 
     def money_flow(self, time_period='week'):
         """
-        Returns jsonified plotly object which is a line chart depicting transactions over time for the User.
+        Returns jsonified plotly object which is a line chart depicting
+        transactions over time for the User.
 
         Parameters:
               time_period (str): time frame used to define "recent" transactions
@@ -215,82 +239,109 @@ class User():
 
         total_each_day['amount_flipped'] = total_each_day['amount_dollars'] * -1
 
-        # generate plot
         fig = go.Figure(data=go.Scatter(x=total_each_day.index,
-                                        y=total_each_day['amount_flipped']))
+                                        y=total_each_day['amount_flipped'],
+                                        marker=dict(
+                                            color='rgb(192,16,137)',
+                                            size=10,
+                                            line=dict(
+                                                color='Black',
+                                                width=2
+                                            )
+                                        ))
+                        )
 
-        fig.update_layout(title=f"{self.name}'s Money Flow for the Last {time_period.capitalize()}",
-                          xaxis_title='Date',
-                          yaxis_title='Dollar Amount',
-                          font_size=16,)
+        fig.update_layout(width=1000, height=500,)
+
+        if time_period == 'all':
+            fig.update_layout(
+                title={"text": f"Money Flow", "x": 0.5, "y": 0.9},
+                xaxis_title='Date',
+                yaxis_title='Net Income ($)',
+                font_size=16,
+                template='presentation')
+
+        else:
+            fig.update_layout(
+                title={"text": f"Money Flow for the Last {time_period.capitalize()}", "x": 0.5, "y": 0.9},
+                xaxis_title='Date',
+                yaxis_title='Net Income ($)',
+                font_size=16,
+                template='presentation')
 
         if self.show:
             fig.show()
 
         return fig.to_json()
 
-    def bar_viz(self, time_period='week', category='grandparent_category_name'):
+    def bar_viz(self, time_period='week', category="grandparent_category_name"):
         """
         Uses plotly express
         Returns jsonified plotly object which is a bar chart of recent transactions for the User.
 
         Parameters:
-              time_period (str): time frame used to define "recent" transactions
-              category (str): category type to return
-                              (grandparent_category_name (default),
-                              parent_category_name,
-                              category_name)
+            time_period (str): time frame used to define "recent" transactions
+            category (str): category type to return
+                            (grandparent_category_name (default),
+                            parent_category_name,
+                            category_name)
         Returns:
-              Plotly object of a bar chart in json
+            Plotly object of a bar chart in json
         """
         # subset the data using the get_last_time_period method
         subset = get_last_time_period(self.expenses, time_period)
+
+        subset[category] = subset[category].astype(str)
+
+        # group the sum of a categorie's purchases by each day rather than by each transaction
+        subset = subset.groupby([category, 'date']).agg(
+            {'amount_dollars': 'sum'})
+        subset = subset.reset_index()
+
+        # rename columns for cleaner visualization
+        subset.rename({category: 'Category', 'date': 'Date',
+                       'amount_dollars': 'Spending ($)'}, axis=1, inplace=True)
 
         # generate bar chart figure
-        fig = px.bar(subset, x='date', y='amount_dollars', color=category,
-                     title=f"{self.name}'s Spending Habits", width=1000)
+
+      
+        fig = px.bar(
+            subset,
+            x='Date',
+            y='Spending ($)',
+            color='Category',
+            opacity=0.9,
+            width=1200,
+            height=500,
+            template='simple_white'
+        )
+
+        if time_period == 'all':
+            fig.update_layout(title={'text': "Daily Spending by Category "})
+        else:
+            fig.update_layout(title={'text': f"Daily Spending by Category for the Last {time_period.capitalize()}"})
+
+        fig.update_layout(legend=dict(
+            yanchor="top",
+            y=1,
+            xanchor='left',
+            x=1
+        ))
+
+        fig.update_layout(font_size=15)
+        fig.update_layout(barmode='relative',)
+        fig.update(layout=dict(title=dict(x=0.45)))
 
         if self.show:
             fig.show()
 
         return fig.to_json()
 
-    def bar_viz_go(self, time_period='week', category='grandparent_category_name'):
-        """
-        Returns jsonified plotly object which is a bar chart of recent transactions for the User.
-
-        Parameters:
-              time_period (str): time frame used to define "recent" transactions
-              category (str): category type to return
-                              (grandparent_category_name (default),
-                              parent_category_name,
-                              category_name)
-        Returns:
-              Plotly object of a bar chart in json
-        """
-        # subset the data using the get_last_time_period method
-        subset = get_last_time_period(self.expenses, time_period)
-
-        # Create bar chart
-        fig = go.Figure(data=go.Bar(
-            x=subset['date'], y=subset['amount_dollars']))
-        fig.update_layout(barmode='stack')
-
-        # Add title
-        fig.update_layout(title=f"{self.name}'s Spending Habits",
-                          font_size=16)
-
-        if self.show:
-            fig.show()
-
-        return fig.to_json()
-    
     def future_budget(self, monthly_savings_goal=50, num_months=6, weighted=True):
 
         # get dataframe of average spending per category over last 6 months
         avg_spending_by_month_df = monthly_avg_spending(
             self.expenses, num_months=num_months, weighted=weighted)
-        
         # turn into dictionary where key is category and value is average spending
         # . for that category
         avg_cat_spending_dict = dict(avg_spending_by_month_df['mean'])
@@ -322,7 +373,7 @@ class User():
         self.past_months = num_months
 
         return avg_cat_spending_dict
-    
+
     def current_month_spending(self):
 
         cur_year = self.expenses['date'].max().year

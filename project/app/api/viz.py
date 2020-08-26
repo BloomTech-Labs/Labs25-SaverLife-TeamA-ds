@@ -17,6 +17,7 @@ class Item(BaseModel):
     user_ID: str = Field(..., example='1635ob1dkQIz1QMjLmBpt0E36VyM96ImeyrgZ')
     graph_type: str = Field(..., example='pie')
     time_period: str = Field(..., example='week')
+    hole: float = Field(0.8, example=0.8)
 
     def to_df(self):
         """Convert pydantic object to pandas dataframe with 1 row."""
@@ -113,7 +114,7 @@ async def moneyflow(moneyflow: MoneyFlow):
     Visualize a user's money flow 📈
     ### Request Body
     - `User_ID`: str
-    - `time_period`: str
+    - `time_period`: str (week, month, year, all)
     ### Response
     - `plotly object`:
     visualizing the user's money flow over the specified time period.
@@ -142,8 +143,9 @@ async def spending(item: Item):
     Make visualizations based on past spending 📊
     ### Request Body
     - `User_ID`: str
-    - `graph_type`: str
-    - `time_period`: str
+    - `graph_type`: str (pie or bar)
+    - `time_period`: str (week, month, year, all)
+    - `hole`: float (0 - 1)
     ### Response
     - `plotly object`:
     visualizing the user's spending habits in the form of the selected graph
@@ -154,6 +156,7 @@ async def spending(item: Item):
     user_id = input_dict['user_ID']
     graph_type = input_dict['graph_type']
     time_period = input_dict['time_period']
+    hole = input_dict['hole']
     # Everything below is copy and pasted code from the spending() function in viz.py
     transactions = clean_data()
     unique_users = set(transactions['plaid_account_id'].unique())
@@ -163,7 +166,7 @@ async def spending(item: Item):
         raise HTTPException(
             status_code=404, detail=f'User {user_id} not found')
 
-    user = User(user_id, transactions)
+    user = User(user_id, transactions, hole=hole)
 
     if graph_type == 'pie':
         return user.categorical_spending(time_period=time_period)
